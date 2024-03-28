@@ -8,14 +8,17 @@ def totaldict(**kwargs):
     return defaultdict(Decimal, **kwargs)
 
 
-def _process_entry(entry, old_deposits):
+def _process_entry(entry, old_deposits, old_withdrawals):
     new_deposits = totaldict(**old_deposits)
+    new_withdrawals = totaldict(**old_withdrawals)
     if entry["type"] == "deposit":
         new_deposits[entry["asset"]] += Decimal(entry["amount"])
+    elif entry["type"] == "withdrawal":
+        new_withdrawals[entry["asset"]] += Decimal(entry["amount"])
     else:
         raise ValueError(f"Unknown entry type: {entry['type']}")
 
-    return new_deposits
+    return new_deposits, new_withdrawals
 
 
 def _format_totals(deposits):
@@ -34,9 +37,10 @@ def main(input_path):
     with open(input_path, "r") as input_file:
         unprocessed = []
         deposits = totaldict()
+        withdrawals = totaldict()
         for entry in _read_csv(input_file):
             try:
-                deposits = _process_entry(entry, deposits)
+                deposits, withdrawals = _process_entry(entry, deposits, withdrawals)
             except ValueError:
                 unprocessed.append(entry)
 
@@ -46,6 +50,11 @@ def main(input_path):
 
     print("Total deposits:")
     for line in _format_totals(deposits):
+        print(line)
+    print()
+
+    print("Total withdrawals:")
+    for line in _format_totals(withdrawals):
         print(line)
 
 
