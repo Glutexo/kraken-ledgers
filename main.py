@@ -1,5 +1,4 @@
 from csv import DictReader
-from collections import defaultdict
 from decimal import Decimal
 from sys import argv
 
