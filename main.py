@@ -1,13 +1,16 @@
 from csv import DictReader
+from collections import defaultdict
 from decimal import Decimal
 from sys import argv
 
 
+def totaldict(**kwargs):
+    return defaultdict(Decimal, **kwargs)
+
+
 def _process_entry(entry, old_deposits):
-    new_deposits = {**old_deposits}
+    new_deposits = totaldict(**old_deposits)
     if entry["type"] == "deposit":
-        if entry["asset"] not in new_deposits:
-            new_deposits[entry["asset"]] = Decimal("0")
         new_deposits[entry["asset"]] += Decimal(entry["amount"])
     else:
         raise ValueError(f"Unknown entry type: {entry['type']}")
@@ -15,7 +18,7 @@ def _process_entry(entry, old_deposits):
     return new_deposits
 
 
-def _format_deposits(deposits):
+def _format_totals(deposits):
     lines = []
     for asset, amount in deposits.items():
         lines += [f"{asset}: {amount}"]
@@ -30,7 +33,7 @@ def _read_csv(file):
 def main(input_path):
     with open(input_path, "r") as input_file:
         unprocessed = []
-        deposits = {}
+        deposits = totaldict()
         for entry in _read_csv(input_file):
             try:
                 deposits = _process_entry(entry, deposits)
@@ -42,7 +45,7 @@ def main(input_path):
         print()
 
     print("Total deposits:")
-    for line in _format_deposits(deposits):
+    for line in _format_totals(deposits):
         print(line)
 
 
