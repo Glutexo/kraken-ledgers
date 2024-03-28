@@ -5,6 +5,10 @@ from decimal import Decimal
 from sys import argv
 
 
+class EntryTypeError(KeyError):
+    pass
+
+
 class AmountWithFee(
     namedtuple(
         "AmountWithFee",
@@ -43,7 +47,7 @@ def _process_entry(entry, old_deposits, old_withdrawals, old_trades):
         fee = old_trade.fee + Decimal(entry["fee"])
         new_trades[entry["asset"]] = AmountWithFee(amount, fee)
     else:
-        raise ValueError(f"Unknown entry type: {entry['type']}")
+        raise EntryTypeError(f"Unknown entry type: {entry['type']}")
 
     return new_deposits, new_withdrawals, new_trades
 
@@ -74,7 +78,7 @@ def main(input_path):
                 deposits, withdrawals, trades = _process_entry(
                     entry, deposits, withdrawals, trades
                 )
-            except ValueError:
+            except EntryTypeError:
                 unprocessed.append(entry)
 
     if unprocessed:
