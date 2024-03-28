@@ -5,7 +5,13 @@ from decimal import Decimal
 from sys import argv
 
 
+zero = Decimal("0")
+
 class EntryTypeError(KeyError):
+    pass
+
+
+class EntryValueError(ValueError):
     pass
 
 
@@ -13,7 +19,7 @@ class AmountWithFee(
     namedtuple(
         "AmountWithFee",
         ("amount", "fee"),
-        defaults=(Decimal("0"), Decimal("0"))
+        defaults=(zero, zero)
     )
 ):
     def __add__(self, other):
@@ -31,14 +37,29 @@ def _process_entry(entry, old_deposits, old_withdrawals, old_trades):
     new_withdrawals = totaldict(**old_withdrawals)
     new_trades = totaldict(**old_trades)
 
+    new_fee = Decimal(entry["fee"])
+    if new_fee > 0:
+        raise EntryValueError(f"Positive fee amount: {new_fee}")
+
     if entry["type"] == "deposit":
+        new_amount = Decimal(entry["amount"])
+        if new_amount < zero:
+            raise EntryValueError(
+                f"Negative deposit amount: {new_amount}"
+            )
         old_deposit = new_deposits[entry["asset"]]
-        amount = old_deposit.amount + Decimal(entry["amount"])
+        amount = old_deposit.amount + new_amount
         fee = old_deposit.fee + Decimal(entry["fee"])
         new_deposits[entry["asset"]] = AmountWithFee(amount, fee)
     elif entry["type"] == "withdrawal":
+        new_amount = Decimal(entry["amount"])
+        if new_amount > zero:
+            raise EntryValueError(
+                f"Positive withdrawal amount: {new_amount}"
+            )
+
         old_withdrawal = new_withdrawals[entry["asset"]]
-        amount = old_withdrawal.amount + Decimal(entry["amount"])
+        amount = old_withdrawal.amount + new_amount
         fee = old_withdrawal.fee + Decimal(entry["fee"])
         new_withdrawals[entry["asset"]] = AmountWithFee(amount, fee)
     elif entry["type"] == "trade":
