@@ -49,7 +49,7 @@ def _process_entry(entry, old_deposits, old_withdrawals, old_trades):
             )
         old_deposit = new_deposits[entry["asset"]]
         amount = old_deposit.amount + new_amount
-        fee = old_deposit.fee + Decimal(entry["fee"])
+        fee = old_deposit.fee - Decimal(entry["fee"])
         new_deposits[entry["asset"]] = AmountWithFee(amount, fee)
     elif entry["type"] == "withdrawal":
         new_amount = Decimal(entry["amount"])
@@ -59,13 +59,13 @@ def _process_entry(entry, old_deposits, old_withdrawals, old_trades):
             )
 
         old_withdrawal = new_withdrawals[entry["asset"]]
-        amount = old_withdrawal.amount + new_amount
-        fee = old_withdrawal.fee + Decimal(entry["fee"])
+        amount = old_withdrawal.amount - new_amount
+        fee = old_withdrawal.fee - Decimal(entry["fee"])
         new_withdrawals[entry["asset"]] = AmountWithFee(amount, fee)
     elif entry["type"] == "trade":
         old_trade = new_trades[entry["asset"]]
         amount = old_trade.amount + Decimal(entry["amount"])
-        fee = old_trade.fee + Decimal(entry["fee"])
+        fee = old_trade.fee - Decimal(entry["fee"])
         new_trades[entry["asset"]] = AmountWithFee(amount, fee)
     else:
         raise EntryTypeError(f"Unknown entry type: {entry['type']}")
