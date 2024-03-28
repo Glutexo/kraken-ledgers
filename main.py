@@ -1,55 +1,60 @@
 from csv import DictReader
 from collections import defaultdict
+from collections import namedtuple
 from decimal import Decimal
 from sys import argv
 
 
-def totaldict(**kwargs):
-    return defaultdict(Decimal, **kwargs)
-
-
-def _process_entry(
-    entry,
-    old_deposits,
-    old_deposit_fees,
-    old_withdrawals,
-    old_withdrawal_fees,
-    old_trades,
-    old_trade_fees,
+class AmountWithFee(
+    namedtuple(
+        "AmountWithFee",
+        ("amount", "fee"),
+        defaults=(Decimal("0"), Decimal("0"))
+    )
 ):
+    def __add__(self, other):
+        amount = self.amount + other.amount
+        fee = self.fee + other.fee
+        return AmountWithFee(amount, fee)
+
+
+def totaldict(**kwargs):
+    return defaultdict(AmountWithFee, **kwargs)
+
+
+def _process_entry(entry, old_deposits, old_withdrawals, old_trades):
     new_deposits = totaldict(**old_deposits)
-    new_deposit_fees = totaldict(**old_deposit_fees)
     new_withdrawals = totaldict(**old_withdrawals)
-    new_withdrawal_fees = totaldict(**old_withdrawal_fees)
     new_trades = totaldict(**old_trades)
-    new_trade_fees = totaldict(**old_trade_fees)
 
     if entry["type"] == "deposit":
-        new_deposits[entry["asset"]] += Decimal(entry["amount"])
-        new_deposit_fees[entry["asset"]] += Decimal(entry["fee"])
+        old_deposit = new_deposits[entry["asset"]]
+        amount = old_deposit.amount + Decimal(entry["amount"])
+        fee = old_deposit.fee + Decimal(entry["fee"])
+        new_deposits[entry["asset"]] = AmountWithFee(amount, fee)
     elif entry["type"] == "withdrawal":
-        new_withdrawals[entry["asset"]] += Decimal(entry["amount"])
-        new_withdrawal_fees[entry["asset"]] += Decimal(entry["fee"])
+        old_withdrawal = new_withdrawals[entry["asset"]]
+        amount = old_withdrawal.amount + Decimal(entry["amount"])
+        fee = old_withdrawal.fee + Decimal(entry["fee"])
+        new_withdrawals[entry["asset"]] = AmountWithFee(amount, fee)
     elif entry["type"] == "trade":
-        new_trades[entry["asset"]] += Decimal(entry["amount"])
-        new_trade_fees[entry["asset"]] += Decimal(entry["fee"])
+        old_trade = new_trades[entry["asset"]]
+        amount = old_trade.amount + Decimal(entry["amount"])
+        fee = old_trade.fee + Decimal(entry["fee"])
+        new_trades[entry["asset"]] = AmountWithFee(amount, fee)
     else:
         raise ValueError(f"Unknown entry type: {entry['type']}")
 
-    return (
-        new_deposits,
-        new_deposit_fees,
-        new_withdrawals,
-        new_withdrawal_fees,
-        new_trades,
-        new_trade_fees,
-    )
+    return new_deposits, new_withdrawals, new_trades
 
 
 def _format_totals(deposits):
     lines = []
-    for asset, amount in deposits.items():
-        lines += [f"{asset}: {amount}"]
+    for asset, amount_with_fee in deposits.items():
+        lines += [
+            f"{asset}: {amount_with_fee.amount}, "
+            f"fees: {amount_with_fee.fee}"
+        ]
     return lines
 
 
@@ -62,28 +67,12 @@ def main(input_path):
     with open(input_path, "r") as input_file:
         unprocessed = []
         deposits = totaldict()
-        deposit_fees = totaldict()
         withdrawals = totaldict()
-        withdrawal_fees = totaldict()
         trades = totaldict()
-        trade_fees = totaldict()
         for entry in _read_csv(input_file):
             try:
-                (
-                    deposits,
-                    deposit_fees,
-                    withdrawals,
-                    withdrawal_fees,
-                    trades,
-                    trade_fees,
-                ) = _process_entry(
-                    entry,
-                    deposits,
-                    deposit_fees,
-                    withdrawals,
-                    withdrawal_fees,
-                    trades,
-                    trade_fees,
+                deposits, withdrawals, trades = _process_entry(
+                    entry, deposits, withdrawals, trades
                 )
             except ValueError:
                 unprocessed.append(entry)
@@ -94,11 +83,8 @@ def main(input_path):
 
     for totals, description in [
         (deposits, "deposits"),
-        (deposit_fees, "deposit_fees"),
         (withdrawals, "withdrawals"),
-        (withdrawal_fees, "withdrawal_fees"),
         (trades, "trades"),
-        (trade_fees, "trade_fees"),
     ]:
         print(f"Total {description}:")
         for line in _format_totals(totals):
