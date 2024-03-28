@@ -8,6 +8,7 @@ from sys import argv
 
 zero = Decimal("0")
 
+
 class EntryTypeError(KeyError):
     pass
 
@@ -35,14 +36,15 @@ def totaldict(**kwargs):
 
 class Totals(namedtuple(
     "Totals",
-    ("deposits", "withdrawals", "trades"),
-    defaults=(totaldict(), totaldict(), totaldict())
+    ("deposits", "withdrawals", "buys", "sells"),
+    defaults=(totaldict(), totaldict(), totaldict(), totaldict())
 )):
     def __copy__(self):
         return Totals(
             totaldict(**self.deposits),
             totaldict(**self.withdrawals),
-            totaldict(**self.trades),
+            totaldict(**self.buys),
+            totaldict(**self.sells),
         )
 
 
@@ -81,12 +83,33 @@ def _process_withdrawal(entry, old_totals):
 
 
 def _process_trade(entry, old_totals):
-    new_totals = copy(old_totals)
-    old_trade = new_totals.trades[entry["asset"]]
+    new_amount = Decimal(entry["amount"])
+    if new_amount > zero:
+        return _process_buy(entry, old_totals)
+    elif new_amount < zero:
+        return _process_sell(entry, old_totals)
+    else:
+        raise EntryValueError("Zero amount trade.")
 
-    amount = old_trade.amount + Decimal(entry["amount"])
-    fee = old_trade.fee - Decimal(entry["fee"])
-    new_totals.trades[entry["asset"]] = AmountWithFee(amount, fee)
+
+def _process_buy(entry, old_totals):
+    new_totals = copy(old_totals)
+    old_buys = new_totals.buys[entry["asset"]]
+
+    amount = old_buys.amount + Decimal(entry["amount"])
+    fee = old_buys.fee - Decimal(entry["fee"])
+    new_totals. buys[entry["asset"]] = AmountWithFee(amount, fee)
+
+    return new_totals
+
+
+def _process_sell(entry, old_totals):
+    new_totals = copy(old_totals)
+    old_sells = new_totals.sells[entry["asset"]]
+
+    amount = old_sells.amount - Decimal(entry["amount"])
+    fee = old_sells.fee - Decimal(entry["fee"])
+    new_totals. sells[entry["asset"]] = AmountWithFee(amount, fee)
 
     return new_totals
 
@@ -114,9 +137,9 @@ def _process_entry(entry, old_totals):
     return new_totals
 
 
-def _format_totals(deposits):
+def _format_totals(total):
     lines = []
-    for asset, amount_with_fee in deposits.items():
+    for asset, amount_with_fee in total.items():
         lines += [
             f"{asset}: {amount_with_fee.amount}, "
             f"fees: {amount_with_fee.fee}"
@@ -146,7 +169,8 @@ def main(input_path):
     for totals, description in [
         (totals.deposits, "deposits"),
         (totals.withdrawals, "withdrawals"),
-        (totals.trades, "trades"),
+        (totals.buys, "buys"),
+        (totals.sells, "sells"),
     ]:
         print(f"Total {description}:")
         for line in _format_totals(totals):
