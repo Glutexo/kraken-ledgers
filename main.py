@@ -68,24 +68,16 @@ def main(input_path):
         print(f"WARNING: {len(unprocessed)} unprocessed entries")
         print()
 
-    print("Total deposits:")
-    for line in _format_totals(deposits):
-        print(line)
-    print()
-
-    print("Total deposit fees:")
-    for line in _format_totals(deposit_fees):
-        print(line)
-    print()
-
-    print("Total withdrawals:")
-    for line in _format_totals(withdrawals):
-        print(line)
-    print()
-
-    print("Total withdrawal fees:")
-    for line in _format_totals(withdrawal_fees):
-        print(line)
+    for totals, description in [
+        (deposits, "deposits"),
+        (deposit_fees, "deposit_fees"),
+        (withdrawals, "withdrawals"),
+        (withdrawal_fees, "withdrawal_fees")
+    ]:
+        print(f"Total {description}:")
+        for line in _format_totals(totals):
+            print(line)
+        print()
 
 
 if __name__ == "__main__":
