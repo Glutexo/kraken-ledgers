@@ -48,92 +48,110 @@ class Totals(namedtuple(
         )
 
 
-def _process_deposit(entry, old_totals):
-    new_amount = Decimal(entry["amount"])
-    if new_amount < zero:
-        raise EntryValueError(
-            f"Negative deposit amount: {new_amount}"
-        )
+class Entry:
+    def __init__(self, entry):
+        self.entry = entry
 
-    new_totals = copy(old_totals)
-    old_deposit = new_totals.deposits[entry["asset"]]
+    def validate(self):
+        amount = Decimal(self.entry["amount"])
+        if amount == zero:
+            raise EntryValueError("Zero amount.")
 
-    amount = old_deposit.amount + new_amount
-    fee = old_deposit.fee - Decimal(entry["fee"])
-    new_totals.deposits[entry["asset"]] = AmountWithFee(amount, fee)
+        new_fee = Decimal(self.entry["fee"])
+        if new_fee > 0:
+            raise EntryValueError(f"Positive fee amount: {new_fee}")
 
-    return new_totals
-
-
-def _process_withdrawal(entry, old_totals):
-    new_amount = Decimal(entry["amount"])
-    if new_amount > zero:
-        raise EntryValueError(
-            f"Positive withdrawal amount: {new_amount}"
-        )
-
-    new_totals = copy(old_totals)
-    old_withdrawal = new_totals.withdrawals[entry["asset"]]
-
-    amount = old_withdrawal.amount - new_amount
-    fee = old_withdrawal.fee - Decimal(entry["fee"])
-    new_totals.withdrawals[entry["asset"]] = AmountWithFee(amount, fee)
-
-    return new_totals
+    def process(self, _old_totals):
+        raise NotImplementedError("Entry can’t be processed.")
 
 
-def _process_trade(entry, old_totals):
-    new_amount = Decimal(entry["amount"])
-    if new_amount > zero:
-        return _process_buy(entry, old_totals)
-    elif new_amount < zero:
-        return _process_sell(entry, old_totals)
-    else:
-        raise EntryValueError("Zero amount trade.")
+class Deposit(Entry):
+    def validate(self):
+        super().validate()
+
+        amount = Decimal(self.entry["amount"])
+        if amount < zero:
+            raise EntryValueError(
+                f"Negative deposit amount: {amount}"
+            )
+
+    def process(self, old_totals):
+        new_totals = copy(old_totals)
+        old_deposit = new_totals.deposits[self.entry["asset"]]
+
+        amount = old_deposit.amount + Decimal(self.entry["amount"])
+        fee = old_deposit.fee - Decimal(self.entry["fee"])
+        new_totals.deposits[self.entry["asset"]] = AmountWithFee(amount, fee)
+
+        return new_totals
 
 
-def _process_buy(entry, old_totals):
-    new_totals = copy(old_totals)
-    old_buys = new_totals.buys[entry["asset"]]
+class Withdrawal(Entry):
+    def validate(self):
+        super().validate()
 
-    amount = old_buys.amount + Decimal(entry["amount"])
-    fee = old_buys.fee - Decimal(entry["fee"])
-    new_totals. buys[entry["asset"]] = AmountWithFee(amount, fee)
+        amount = Decimal(self.entry["amount"])
+        if amount > zero:
+            raise EntryValueError(
+                f"Positive withdrawal amount: {amount}"
+            )
 
-    return new_totals
+    def process(self, old_totals):
+        new_totals = copy(old_totals)
+        old_withdrawal = new_totals.withdrawals[self.entry["asset"]]
+
+        amount = old_withdrawal.amount - Decimal(self.entry["amount"])
+        fee = old_withdrawal.fee - Decimal(self.entry["fee"])
+        new_totals.withdrawals[self.entry["asset"]] = AmountWithFee(amount, fee)
+
+        return new_totals
 
 
-def _process_sell(entry, old_totals):
-    new_totals = copy(old_totals)
-    old_sells = new_totals.sells[entry["asset"]]
+class Trade(Entry):
+    def process(self, old_totals):
+        new_amount = Decimal(self.entry["amount"])
+        new_totals = copy(old_totals)
+        if new_amount > zero:
+            return self._process_buy(new_totals)
+        else:
+            return self._process_sell(new_totals)
 
-    amount = old_sells.amount - Decimal(entry["amount"])
-    fee = old_sells.fee - Decimal(entry["fee"])
-    new_totals. sells[entry["asset"]] = AmountWithFee(amount, fee)
+    def _process_buy(self, new_totals):
+        old_buys = new_totals.buys[self.entry["asset"]]
 
-    return new_totals
+        amount = old_buys.amount + Decimal(self.entry["amount"])
+        fee = old_buys.fee - Decimal(self.entry["fee"])
+        new_totals. buys[self.entry["asset"]] = AmountWithFee(amount, fee)
+
+        return new_totals
+
+    def _process_sell(self, new_totals):
+        old_sells = new_totals.sells[self.entry["asset"]]
+
+        amount = old_sells.amount - Decimal(self.entry["amount"])
+        fee = old_sells.fee - Decimal(self.entry["fee"])
+        new_totals. sells[self.entry["asset"]] = AmountWithFee(amount, fee)
+
+        return new_totals
 
 
-entry_type_processors = {
-    "deposit": _process_deposit,
-    "withdrawal": _process_withdrawal,
-    "trade": _process_trade,
+entry_types = {
+    "deposit": Deposit,
+    "withdrawal": Withdrawal,
+    "trade": Trade,
 }
 
 
-def _process_entry(entry, old_totals):
-    new_totals = Totals()
-
-    new_fee = Decimal(entry["fee"])
-    if new_fee > 0:
-        raise EntryValueError(f"Positive fee amount: {new_fee}")
-
+def _process_entry(raw_entry, old_totals):
     try:
-        processor = entry_type_processors[entry["type"]]
+        entry_type = entry_types[raw_entry["type"]]
     except KeyError:
-        raise EntryTypeError(f"Unknown entry type: {entry['type']}")
+        raise EntryTypeError(f"Unknown entry type: {raw_entry['type']}")
 
-    new_totals = processor(entry, old_totals)
+    entry = entry_type(raw_entry)
+    entry.validate()
+
+    new_totals = entry.process(old_totals)
     return new_totals
 
 
