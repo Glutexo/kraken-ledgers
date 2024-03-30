@@ -50,16 +50,16 @@ class Totals(namedtuple(
 
 class Entry:
     def __init__(self, entry):
-        self.entry = entry
+        self.asset = entry["asset"]
+        self.amount = Decimal(entry["amount"])
+        self.fee = Decimal(entry["fee"])
 
     def validate(self):
-        amount = Decimal(self.entry["amount"])
-        if amount == zero:
+        if self.amount == zero:
             raise EntryValueError("Zero amount.")
 
-        new_fee = Decimal(self.entry["fee"])
-        if new_fee > 0:
-            raise EntryValueError(f"Positive fee amount: {new_fee}")
+        if self.fee > 0:
+            raise EntryValueError(f"Positive fee amount: {self.fee}")
 
     def process(self, _old_totals):
         raise NotImplementedError("Entry can’t be processed.")
@@ -69,19 +69,18 @@ class Deposit(Entry):
     def validate(self):
         super().validate()
 
-        amount = Decimal(self.entry["amount"])
-        if amount < zero:
+        if self.amount < zero:
             raise EntryValueError(
-                f"Negative deposit amount: {amount}"
+                f"Negative deposit amount: {self.amount}"
             )
 
     def process(self, old_totals):
         new_totals = copy(old_totals)
-        old_deposit = new_totals.deposits[self.entry["asset"]]
+        old_deposit = new_totals.deposits[self.asset]
 
-        amount = old_deposit.amount + Decimal(self.entry["amount"])
-        fee = old_deposit.fee - Decimal(self.entry["fee"])
-        new_totals.deposits[self.entry["asset"]] = AmountWithFee(amount, fee)
+        amount = old_deposit.amount + self.amount
+        fee = old_deposit.fee - self.fee
+        new_totals.deposits[self.asset] = AmountWithFee(amount, fee)
 
         return new_totals
 
@@ -90,47 +89,45 @@ class Withdrawal(Entry):
     def validate(self):
         super().validate()
 
-        amount = Decimal(self.entry["amount"])
-        if amount > zero:
+        if self.amount > zero:
             raise EntryValueError(
-                f"Positive withdrawal amount: {amount}"
+                f"Positive withdrawal amount: {self.amount}"
             )
 
     def process(self, old_totals):
         new_totals = copy(old_totals)
-        old_withdrawal = new_totals.withdrawals[self.entry["asset"]]
+        old_withdrawal = new_totals.withdrawals[self.asset]
 
-        amount = old_withdrawal.amount - Decimal(self.entry["amount"])
-        fee = old_withdrawal.fee - Decimal(self.entry["fee"])
-        new_totals.withdrawals[self.entry["asset"]] = AmountWithFee(amount, fee)
+        amount = old_withdrawal.amount - self.amount
+        fee = old_withdrawal.fee - self.fee
+        new_totals.withdrawals[self.asset] = AmountWithFee(amount, fee)
 
         return new_totals
 
 
 class Trade(Entry):
     def process(self, old_totals):
-        new_amount = Decimal(self.entry["amount"])
         new_totals = copy(old_totals)
-        if new_amount > zero:
+        if self.amount > zero:
             return self._process_buy(new_totals)
         else:
             return self._process_sell(new_totals)
 
     def _process_buy(self, new_totals):
-        old_buys = new_totals.buys[self.entry["asset"]]
+        old_buys = new_totals.buys[self.asset]
 
-        amount = old_buys.amount + Decimal(self.entry["amount"])
-        fee = old_buys.fee - Decimal(self.entry["fee"])
-        new_totals. buys[self.entry["asset"]] = AmountWithFee(amount, fee)
+        amount = old_buys.amount + self.amount
+        fee = old_buys.fee - self.fee
+        new_totals. buys[self.asset] = AmountWithFee(amount, fee)
 
         return new_totals
 
     def _process_sell(self, new_totals):
-        old_sells = new_totals.sells[self.entry["asset"]]
+        old_sells = new_totals.sells[self.asset]
 
-        amount = old_sells.amount - Decimal(self.entry["amount"])
-        fee = old_sells.fee - Decimal(self.entry["fee"])
-        new_totals. sells[self.entry["asset"]] = AmountWithFee(amount, fee)
+        amount = old_sells.amount - self.amount
+        fee = old_sells.fee - self.fee
+        new_totals. sells[self.asset] = AmountWithFee(amount, fee)
 
         return new_totals
 
