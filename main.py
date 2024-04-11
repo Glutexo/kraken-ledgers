@@ -49,6 +49,17 @@ class Totals(namedtuple(
 
 
 class Entry:
+    def __new__(cls, entry):
+        if cls is not Entry:
+            return super().__new__(cls)
+
+        try:
+            entry_type = entry_types[entry["type"]]
+        except KeyError:
+            raise EntryTypeError(f"Unknown entry type: {entry['type']}")
+
+        return entry_type(entry)
+
     def __init__(self, entry):
         self.asset = entry["asset"]
         self.amount = Decimal(entry["amount"])
@@ -70,7 +81,7 @@ class Entry:
         amount = old_trade.amount + abs(self.amount)
         fee = old_trade.fee - self.fee
 
-        old_trades[self.asset] = AmountWithFee(amount, fee)
+        old_trades[self.asset] = AmountWithFee(amount,fee)
         return new_totals
 
 
@@ -114,19 +125,6 @@ entry_types = {
 }
 
 
-def _process_entry(raw_entry, old_totals):
-    try:
-        entry_type = entry_types[raw_entry["type"]]
-    except KeyError:
-        raise EntryTypeError(f"Unknown entry type: {raw_entry['type']}")
-
-    entry = entry_type(raw_entry)
-    entry.validate()
-
-    new_totals = entry.process(old_totals)
-    return new_totals
-
-
 def _format_totals(total):
     lines = []
     for asset, amount_with_fee in total.items():
@@ -148,9 +146,12 @@ def main(input_path):
         totals = Totals()
         for entry in _read_csv(input_file):
             try:
-                totals = _process_entry(entry, totals)
+                entry = Entry(entry)
             except EntryTypeError:
                 unprocessed.append(entry)
+            else:
+                entry.validate()
+                totals = entry.process(totals)
 
     if unprocessed:
         print(f"WARNING: {len(unprocessed)} unprocessed entries")
