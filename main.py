@@ -98,6 +98,7 @@ class Deposit(Entry):
                 f"Negative deposit amount: {self.amount}"
             )
 
+
 class Withdrawal(Entry):
     def __init__(self, entry):
         super().__init__(entry)
