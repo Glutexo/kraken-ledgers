@@ -53,6 +53,7 @@ class Entry:
         self.asset = entry["asset"]
         self.amount = Decimal(entry["amount"])
         self.fee = Decimal(entry["fee"])
+        self.key = ...
 
     def validate(self):
         if self.amount == zero:
@@ -61,11 +62,23 @@ class Entry:
         if self.fee > 0:
             raise EntryValueError(f"Positive fee amount: {self.fee}")
 
-    def process(self, _old_totals):
-        raise NotImplementedError("Entry can’t be processed.")
+    def process(self, old_totals):
+        new_totals = copy(old_totals)
+        old_trade = getattr(new_totals, self.key)[self.asset]
+
+        amount = old_trade.amount + abs(self.amount)
+        fee = old_trade.fee - self.fee
+        getattr(new_totals, self.key)[self.asset] = AmountWithFee(amount,
+            fee)
+
+        return new_totals
 
 
 class Deposit(Entry):
+    def __init__(self, entry):
+        super().__init__(entry)
+        self.key = "deposits"
+
     def validate(self):
         super().validate()
 
@@ -74,18 +87,11 @@ class Deposit(Entry):
                 f"Negative deposit amount: {self.amount}"
             )
 
-    def process(self, old_totals):
-        new_totals = copy(old_totals)
-        old_deposit = new_totals.deposits[self.asset]
-
-        amount = old_deposit.amount + self.amount
-        fee = old_deposit.fee - self.fee
-        new_totals.deposits[self.asset] = AmountWithFee(amount, fee)
-
-        return new_totals
-
-
 class Withdrawal(Entry):
+    def __init__(self, entry):
+        super().__init__(entry)
+        self.key = "withdrawals"
+
     def validate(self):
         super().validate()
 
@@ -94,42 +100,11 @@ class Withdrawal(Entry):
                 f"Positive withdrawal amount: {self.amount}"
             )
 
-    def process(self, old_totals):
-        new_totals = copy(old_totals)
-        old_withdrawal = new_totals.withdrawals[self.asset]
-
-        amount = old_withdrawal.amount - self.amount
-        fee = old_withdrawal.fee - self.fee
-        new_totals.withdrawals[self.asset] = AmountWithFee(amount, fee)
-
-        return new_totals
-
 
 class Trade(Entry):
-    def process(self, old_totals):
-        new_totals = copy(old_totals)
-        if self.amount > zero:
-            return self._process_buy(new_totals)
-        else:
-            return self._process_sell(new_totals)
-
-    def _process_buy(self, new_totals):
-        old_buys = new_totals.buys[self.asset]
-
-        amount = old_buys.amount + self.amount
-        fee = old_buys.fee - self.fee
-        new_totals. buys[self.asset] = AmountWithFee(amount, fee)
-
-        return new_totals
-
-    def _process_sell(self, new_totals):
-        old_sells = new_totals.sells[self.asset]
-
-        amount = old_sells.amount - self.amount
-        fee = old_sells.fee - self.fee
-        new_totals. sells[self.asset] = AmountWithFee(amount, fee)
-
-        return new_totals
+    def __init__(self, entry):
+        super().__init__(entry)
+        self.key = "buys" if self.amount > zero else "sells"
 
 
 entry_types = {
