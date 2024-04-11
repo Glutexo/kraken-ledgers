@@ -64,13 +64,13 @@ class Entry:
 
     def process(self, old_totals):
         new_totals = copy(old_totals)
-        old_trade = getattr(new_totals, self.key)[self.asset]
+        old_trades = getattr(new_totals, self.key)
 
+        old_trade = old_trades[self.asset]
         amount = old_trade.amount + abs(self.amount)
         fee = old_trade.fee - self.fee
-        getattr(new_totals, self.key)[self.asset] = AmountWithFee(amount,
-            fee)
 
+        old_trades[self.asset] = AmountWithFee(amount, fee)
         return new_totals
 
 
