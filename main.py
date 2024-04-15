@@ -1,8 +1,8 @@
 from csv import DictReader
 from collections import defaultdict
 from collections import namedtuple
-from copy import copy
 from decimal import Decimal
+from enum import Enum
 from sys import argv
 
 
@@ -39,6 +39,7 @@ def totaldict(**kwargs):
     return defaultdict(AmountWithFee, **kwargs)
 
 
+EntryType = Enum("EntryType", ["deposits", "withdrawals", "buys", "sells"])
 Trade = namedtuple("Trade", ("buy", "sell"), defaults=(None, None))
 TradeTotal = namedtuple("TradeTotal", ("buys", "sells"), defaults=(AmountWithFee(), AmountWithFee()))
 
@@ -90,7 +91,7 @@ class Entry:
 class DepositEntry(Entry):
     def __init__(self, entry):
         super().__init__(entry)
-        self.key = "deposits"
+        self.key = EntryType.deposits
 
     def validate(self):
         super().validate()
@@ -104,7 +105,7 @@ class DepositEntry(Entry):
 class WithdrawalEntry(Entry):
     def __init__(self, entry):
         super().__init__(entry)
-        self.key = "withdrawals"
+        self.key = EntryType.withdrawals
 
     def validate(self):
         super().validate()
@@ -118,7 +119,7 @@ class WithdrawalEntry(Entry):
 class TradeEntry(Entry):
     def __init__(self, entry):
         super().__init__(entry)
-        self.key = "buys" if self.amount.amount > zero else "sells"
+        self.key = EntryType.buys if self.amount.amount > zero else EntryType.sells
 
 
 entry_types = {
@@ -156,7 +157,7 @@ def main(input_path):
             else:
                 entry.validate()
                 totals.add(entry)
-                if entry.key in ["buys", "sells"]:
+                if entry.key in [EntryType.buys, EntryType.sells]:
                     trades.add(entry)
 
     if unprocessed:
@@ -164,7 +165,7 @@ def main(input_path):
         print()
 
     for description, totals in totals.totals.items():
-        print(f"Total {description}:")
+        print(f"Total {description.name}:")
         for line in _format_totals(totals):
             print(line)
         print()
