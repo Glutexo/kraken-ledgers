@@ -39,22 +39,16 @@ def totaldict(**kwargs):
     return defaultdict(AmountWithFee, **kwargs)
 
 
-class Totals(namedtuple(
-    "Totals",
-    ("deposits", "withdrawals", "buys", "sells"),
-    defaults=(totaldict(), totaldict(), totaldict(), totaldict())
-)):
-    def __copy__(self):
-        return Totals(
-            totaldict(**self.deposits),
-            totaldict(**self.withdrawals),
-            totaldict(**self.buys),
-            totaldict(**self.sells),
-        )
-
-
 Trade = namedtuple("Trade", ("buy", "sell"), defaults=(None, None))
 TradeTotal = namedtuple("TradeTotal", ("buys", "sells"), defaults=(AmountWithFee(), AmountWithFee()))
+
+
+class Totals:
+    def __init__(self):
+        self.totals = defaultdict(totaldict)
+
+    def add(self, entry):
+        self.totals[entry.key][entry.asset] += abs(entry.amount)
 
 
 class Trades:
@@ -91,12 +85,6 @@ class Entry:
 
         if self.amount.fee > 0:
             raise EntryValueError(f"Positive fee amount: {self.amount.fee}")
-
-    def process(self, old_totals):
-        new_totals = copy(old_totals)
-        old_trades = getattr(new_totals, self.key)
-        old_trades[self.asset] += abs(self.amount)
-        return new_totals
 
 
 class DepositEntry(Entry):
@@ -167,7 +155,7 @@ def main(input_path):
                 unprocessed.append(entry)
             else:
                 entry.validate()
-                totals = entry.process(totals)
+                totals.add(entry)
                 if entry.key in ["buys", "sells"]:
                     trades.add(entry)
 
@@ -175,12 +163,7 @@ def main(input_path):
         print(f"WARNING: {len(unprocessed)} unprocessed entries")
         print()
 
-    for totals, description in [
-        (totals.deposits, "deposits"),
-        (totals.withdrawals, "withdrawals"),
-        (totals.buys, "buys"),
-        (totals.sells, "sells"),
-    ]:
+    for description, totals in totals.totals.items():
         print(f"Total {description}:")
         for line in _format_totals(totals):
             print(line)
