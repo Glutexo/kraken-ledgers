@@ -29,6 +29,11 @@ class AmountWithFee(
         fee = self.fee + other.fee
         return AmountWithFee(amount, fee)
 
+    def __abs__(self):
+        amount = abs(self.amount)
+        fee = abs(self.fee)
+        return AmountWithFee(amount, fee)
+
 
 def totaldict(**kwargs):
     return defaultdict(AmountWithFee, **kwargs)
@@ -48,6 +53,20 @@ class Totals(namedtuple(
         )
 
 
+Trade = namedtuple("Trade", ("buy", "sell"), defaults=(None, None))
+TradeTotal = namedtuple("TradeTotal", ("buys", "sells"), defaults=(AmountWithFee(), AmountWithFee()))
+
+
+class Trades:
+    def __init__(self):
+        self.trades = defaultdict(Trade)
+
+    def add(self, entry):
+        field = "buy" if entry.amount.amount > zero else "sell"
+        existing = self.trades[entry.refid]._asdict()
+        self.trades[entry.refid] = Trade(**{**existing, field: entry})
+
+
 class Entry:
     def __new__(cls, entry):
         if cls is not Entry:
@@ -61,31 +80,26 @@ class Entry:
         return entry_type(entry)
 
     def __init__(self, entry):
+        self.refid = entry["refid"]
         self.asset = entry["asset"]
-        self.amount = Decimal(entry["amount"])
-        self.fee = Decimal(entry["fee"])
+        self.amount = AmountWithFee(Decimal(entry["amount"]), Decimal(entry["fee"]))
         self.key = ...
 
     def validate(self):
         if self.amount == zero:
             raise EntryValueError("Zero amount.")
 
-        if self.fee > 0:
-            raise EntryValueError(f"Positive fee amount: {self.fee}")
+        if self.amount.fee > 0:
+            raise EntryValueError(f"Positive fee amount: {self.amount.fee}")
 
     def process(self, old_totals):
         new_totals = copy(old_totals)
         old_trades = getattr(new_totals, self.key)
-
-        old_trade = old_trades[self.asset]
-        amount = old_trade.amount + abs(self.amount)
-        fee = old_trade.fee - self.fee
-
-        old_trades[self.asset] = AmountWithFee(amount,fee)
+        old_trades[self.asset] += abs(self.amount)
         return new_totals
 
 
-class Deposit(Entry):
+class DepositEntry(Entry):
     def __init__(self, entry):
         super().__init__(entry)
         self.key = "deposits"
@@ -93,13 +107,13 @@ class Deposit(Entry):
     def validate(self):
         super().validate()
 
-        if self.amount < zero:
+        if self.amount.amount < zero:
             raise EntryValueError(
                 f"Negative deposit amount: {self.amount}"
             )
 
 
-class Withdrawal(Entry):
+class WithdrawalEntry(Entry):
     def __init__(self, entry):
         super().__init__(entry)
         self.key = "withdrawals"
@@ -107,22 +121,22 @@ class Withdrawal(Entry):
     def validate(self):
         super().validate()
 
-        if self.amount > zero:
+        if self.amount.amount > zero:
             raise EntryValueError(
                 f"Positive withdrawal amount: {self.amount}"
             )
 
 
-class Trade(Entry):
+class TradeEntry(Entry):
     def __init__(self, entry):
         super().__init__(entry)
-        self.key = "buys" if self.amount > zero else "sells"
+        self.key = "buys" if self.amount.amount > zero else "sells"
 
 
 entry_types = {
-    "deposit": Deposit,
-    "withdrawal": Withdrawal,
-    "trade": Trade,
+    "deposit": DepositEntry,
+    "withdrawal": WithdrawalEntry,
+    "trade": TradeEntry,
 }
 
 
@@ -145,14 +159,17 @@ def main(input_path):
     with open(input_path, "r") as input_file:
         unprocessed = []
         totals = Totals()
-        for entry in _read_csv(input_file):
+        trades = Trades()
+        for raw_entry in _read_csv(input_file):
             try:
-                entry = Entry(entry)
+                entry = Entry(raw_entry)
             except EntryTypeError:
                 unprocessed.append(entry)
             else:
                 entry.validate()
                 totals = entry.process(totals)
+                if entry.key in ["buys", "sells"]:
+                    trades.add(entry)
 
     if unprocessed:
         print(f"WARNING: {len(unprocessed)} unprocessed entries")
@@ -168,6 +185,20 @@ def main(input_path):
         for line in _format_totals(totals):
             print(line)
         print()
+
+    buys = defaultdict(TradeTotal)
+
+    for trade in trades.trades.values():
+        buy_key = (trade.buy.asset, trade.sell.asset)
+
+        buy = buys[buy_key].buys + abs(trade.buy.amount)
+        sell = buys[buy_key].sells + abs(trade.sell.amount)
+        buys[buy_key] = TradeTotal(buy, sell)
+
+    print("Total buys by asset:")
+    for key, value in buys.items():
+        print(f"{key[0]:4} for {key[1]:4}: {value.buys.amount}, fees {value.buys.fee} for {value.sells.amount}, fees {value.sells.fee}")
+    print()
 
 
 if __name__ == "__main__":

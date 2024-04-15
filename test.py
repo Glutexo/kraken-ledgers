@@ -1,13 +1,12 @@
-class Parent:
-    def __new__(cls):
-        print(__class__)
-        print(cls)
+from collections import namedtuple
 
-class Child:
-    def __new__(cls):
-        print(__class__)
-        print(cls)
+class Trade(namedtuple("Trade", ("buy", "sell"))):
+    def __init__(self, trade, entry):
+        print(super())
+        super().__init__("b2", "s2")
+
 
 if __name__ == "__main__":
-    parent = Child()
-    print(parent)
+    trade = Trade("b1", "s1")
+    trade = Trade(trade, "x")
+    print(trade)
