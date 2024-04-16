@@ -13,7 +13,7 @@ class EntryTypeError(KeyError):
     pass
 
 
-class EntryValueError(ValueError):
+class EntryAmountError(ValueError):
     pass
 
 
@@ -74,25 +74,24 @@ class Entry:
         except KeyError:
             raise EntryTypeError()
         else:
-            self.type = entry_type(self)
+            self.type = entry_type(self.amount)
 
-    def validate(self):
-        valid = entry_validations[self.type](self)
+        valid = entry_validations[self.type](self.amount)
         if not valid:
-            raise EntryValueError()
+            raise EntryAmountError()
 
 
 entry_types = {
-    "deposit": lambda entry: EntryType.deposits,
-    "withdrawal": lambda entry: EntryType.withdrawals,
-    "trade": lambda entry: EntryType.buys if entry.amount.amount > zero else EntryType.sells,
+    "deposit": lambda amount: EntryType.deposits,
+    "withdrawal": lambda amount: EntryType.withdrawals,
+    "trade": lambda amount: EntryType.buys if amount.amount > zero else EntryType.sells,
 }
 
 entry_validations = {
-    EntryType.deposits: lambda entry: entry.amount.amount > zero,
-    EntryType.withdrawals: lambda entry: entry.amount.amount < zero,
-    EntryType.buys: lambda entry: entry.amount.amount > zero,
-    EntryType.sells: lambda entry: entry.amount.amount < zero,
+    EntryType.deposits: lambda amount: amount.amount > zero,
+    EntryType.withdrawals: lambda amount: amount.amount < zero,
+    EntryType.buys: lambda amount: amount.amount > zero,
+    EntryType.sells: lambda amount: amount.amount < zero,
 }
 
 
@@ -122,7 +121,6 @@ def main(input_path):
             except EntryTypeError:
                 unprocessed.append(entry)
             else:
-                entry.validate()
                 totals.add(entry)
                 if entry.type in [EntryType.buys, EntryType.sells]:
                     trades.add(entry)
