@@ -89,6 +89,8 @@ entry_types = {
     "deposit": lambda amount: EntryType.deposits,
     "withdrawal": lambda amount: EntryType.withdrawals,
     "trade": lambda amount: EntryType.buys if amount.amount > zero else EntryType.sells,
+    "spend": lambda amount: EntryType.sells,
+    "receive": lambda amount: EntryType.buys,
 }
 
 entry_validations = {
