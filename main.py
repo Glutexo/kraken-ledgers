@@ -49,7 +49,7 @@ class Totals:
         self.totals = defaultdict(totaldict)
 
     def add(self, entry):
-        self.totals[entry.key][entry.asset] += abs(entry.amount)
+        self.totals[entry.type][entry.asset] += abs(entry.amount)
 
 
 class Trades:
@@ -63,69 +63,36 @@ class Trades:
 
 
 class Entry:
-    def __new__(cls, entry):
-        if cls is not Entry:
-            return super().__new__(cls)
-
-        try:
-            entry_type = entry_types[entry["type"]]
-        except KeyError:
-            raise EntryTypeError(f"Unknown entry type: {entry['type']}")
-
-        return entry_type(entry)
-
     def __init__(self, entry):
         self.refid = entry["refid"]
         self.asset = entry["asset"]
         self.amount = AmountWithFee(Decimal(entry["amount"]), Decimal(entry["fee"]))
-        self.key = ...
+
+        type = entry["type"]
+        try:
+            entry_type = entry_types[type]
+        except KeyError:
+            raise EntryTypeError()
+        else:
+            self.type = entry_type(self)
 
     def validate(self):
-        if self.amount == zero:
-            raise EntryValueError("Zero amount.")
-
-        if self.amount.fee > 0:
-            raise EntryValueError(f"Positive fee amount: {self.amount.fee}")
-
-
-class DepositEntry(Entry):
-    def __init__(self, entry):
-        super().__init__(entry)
-        self.key = EntryType.deposits
-
-    def validate(self):
-        super().validate()
-
-        if self.amount.amount < zero:
-            raise EntryValueError(
-                f"Negative deposit amount: {self.amount}"
-            )
-
-
-class WithdrawalEntry(Entry):
-    def __init__(self, entry):
-        super().__init__(entry)
-        self.key = EntryType.withdrawals
-
-    def validate(self):
-        super().validate()
-
-        if self.amount.amount > zero:
-            raise EntryValueError(
-                f"Positive withdrawal amount: {self.amount}"
-            )
-
-
-class TradeEntry(Entry):
-    def __init__(self, entry):
-        super().__init__(entry)
-        self.key = EntryType.buys if self.amount.amount > zero else EntryType.sells
+        valid = entry_validations[self.type](self)
+        if not valid:
+            raise EntryValueError()
 
 
 entry_types = {
-    "deposit": DepositEntry,
-    "withdrawal": WithdrawalEntry,
-    "trade": TradeEntry,
+    "deposit": lambda entry: EntryType.deposits,
+    "withdrawal": lambda entry: EntryType.withdrawals,
+    "trade": lambda entry: EntryType.buys if entry.amount.amount > zero else EntryType.sells,
+}
+
+entry_validations = {
+    EntryType.deposits: lambda entry: entry.amount.amount > zero,
+    EntryType.withdrawals: lambda entry: entry.amount.amount < zero,
+    EntryType.buys: lambda entry: entry.amount.amount > zero,
+    EntryType.sells: lambda entry: entry.amount.amount < zero,
 }
 
 
@@ -157,7 +124,7 @@ def main(input_path):
             else:
                 entry.validate()
                 totals.add(entry)
-                if entry.key in [EntryType.buys, EntryType.sells]:
+                if entry.type in [EntryType.buys, EntryType.sells]:
                     trades.add(entry)
 
     if unprocessed:
