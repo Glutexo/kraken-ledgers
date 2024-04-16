@@ -40,7 +40,7 @@ def totaldict(**kwargs):
 
 
 EntryType = Enum("EntryType", ["deposits", "withdrawals", "buys", "sells"])
-Trade = namedtuple("Trade", ("buy", "sell"), defaults=(None, None))
+Trade = namedtuple("Trade", ("buys", "sells"), defaults=(None, None))
 TradeTotal = namedtuple("TradeTotal", ("buys", "sells"), defaults=(AmountWithFee(), AmountWithFee()))
 
 
@@ -49,7 +49,7 @@ class Totals:
         self.totals = defaultdict(totaldict)
 
     def add(self, entry):
-        self.totals[entry.type][entry.asset] += abs(entry.amount)
+        self.totals[entry.type][entry.asset] += entry.amount
 
 
 class Trades:
@@ -57,28 +57,32 @@ class Trades:
         self.trades = defaultdict(Trade)
 
     def add(self, entry):
-        field = "buy" if entry.amount.amount > zero else "sell"
         existing = self.trades[entry.refid]._asdict()
-        self.trades[entry.refid] = Trade(**{**existing, field: entry})
+        type = entry.type.name
+        self.trades[entry.refid] = Trade(**{**existing, type: entry})
 
 
 class Entry:
     def __init__(self, entry):
         self.refid = entry["refid"]
         self.asset = entry["asset"]
-        self.amount = AmountWithFee(Decimal(entry["amount"]), Decimal(entry["fee"]))
 
         type = entry["type"]
         try:
             entry_type = entry_types[type]
         except KeyError:
             raise EntryTypeError()
-        else:
-            self.type = entry_type(self.amount)
 
-        valid = entry_validations[self.type](self.amount)
+        amount = Decimal(entry["amount"])
+        fee = Decimal(entry["fee"])
+        amount_with_fee = AmountWithFee(amount, fee)
+        self.type = entry_type(amount_with_fee)
+
+        valid = entry_validations[self.type](amount_with_fee)
         if not valid:
             raise EntryAmountError()
+
+        self.amount = abs(amount_with_fee)
 
 
 entry_types = {
@@ -138,10 +142,10 @@ def main(input_path):
     buys = defaultdict(TradeTotal)
 
     for trade in trades.trades.values():
-        buy_key = (trade.buy.asset, trade.sell.asset)
+        buy_key = (trade.buys.asset, trade.sells.asset)
 
-        buy = buys[buy_key].buys + abs(trade.buy.amount)
-        sell = buys[buy_key].sells + abs(trade.sell.amount)
+        buy = buys[buy_key].buys + trade.buys.amount
+        sell = buys[buy_key].sells + trade.sells.amount
         buys[buy_key] = TradeTotal(buy, sell)
 
     print("Total buys by asset:")
