@@ -39,9 +39,9 @@ def totaldict(**kwargs):
     return defaultdict(AmountWithFee, **kwargs)
 
 
-EntryType = Enum("EntryType", ["deposits", "withdrawals", "buys", "sells"])
-Trade = namedtuple("Trade", ("buys", "sells"), defaults=(None, None))
-TradeTotal = namedtuple("TradeTotal", ("buys", "sells"), defaults=(AmountWithFee(), AmountWithFee()))
+EntryType = Enum("EntryType", ["deposit", "withdrawal", "buy", "sell"])
+Trade = namedtuple("Trade", ("buy", "sell"), defaults=(None, None))
+TradeTotal = namedtuple("TradeTotal", ("buy", "sell"), defaults=(AmountWithFee(), AmountWithFee()))
 
 
 class Totals:
@@ -86,18 +86,18 @@ class Entry:
 
 
 entry_types = {
-    "deposit": lambda amount: EntryType.deposits,
-    "withdrawal": lambda amount: EntryType.withdrawals,
-    "trade": lambda amount: EntryType.buys if amount.amount > zero else EntryType.sells,
-    "spend": lambda amount: EntryType.sells,
-    "receive": lambda amount: EntryType.buys,
+    "deposit": lambda amount: EntryType.deposit,
+    "withdrawal": lambda amount: EntryType.withdrawal,
+    "trade": lambda amount: EntryType.buy if amount.amount > zero else EntryType.sell,
+    "spend": lambda amount: EntryType.sell,
+    "receive": lambda amount: EntryType.buy,
 }
 
 entry_validations = {
-    EntryType.deposits: lambda amount: amount.amount > zero,
-    EntryType.withdrawals: lambda amount: amount.amount < zero,
-    EntryType.buys: lambda amount: amount.amount > zero,
-    EntryType.sells: lambda amount: amount.amount < zero,
+    EntryType.deposit: lambda amount: amount.amount > zero,
+    EntryType.withdrawal: lambda amount: amount.amount < zero,
+    EntryType.buy: lambda amount: amount.amount > zero,
+    EntryType.sell: lambda amount: amount.amount < zero,
 }
 
 
@@ -128,7 +128,7 @@ def main(input_path):
                 unprocessed.append(entry)
             else:
                 totals.add(entry)
-                if entry.type in [EntryType.buys, EntryType.sells]:
+                if entry.type in [EntryType.buy, EntryType.sell]:
                     trades.add(entry)
 
     if unprocessed:
@@ -141,18 +141,18 @@ def main(input_path):
             print(line)
         print()
 
-    buys = defaultdict(TradeTotal)
+    trade_totals = defaultdict(TradeTotal)
 
     for trade in trades.trades.values():
-        buy_key = (trade.buys.asset, trade.sells.asset)
+        pair = (trade.buy.asset, trade.sell.asset)
 
-        buy = buys[buy_key].buys + trade.buys.amount
-        sell = buys[buy_key].sells + trade.sells.amount
-        buys[buy_key] = TradeTotal(buy, sell)
+        buy = trade_totals[pair].buy + trade.buy.amount
+        sell = trade_totals[pair].sell + trade.sell.amount
+        trade_totals[pair] = TradeTotal(buy, sell)
 
-    print("Total buys by asset:")
-    for key, value in buys.items():
-        print(f"{key[0]:4} for {key[1]:4}: {value.buys.amount}, fees {value.buys.fee} for {value.sells.amount}, fees {value.sells.fee}")
+    print("Total trades by asset:")
+    for key, value in trade_totals.items():
+        print(f"{key[0]:4} for {key[1]:4}: {value.buy.amount}, fees {value.buy.fee} for {value.sell.amount}, fees {value.sell.fee}")
     print()
 
 
