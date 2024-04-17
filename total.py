@@ -16,7 +16,6 @@ TradeTotal = namedtuple(
     "TradeTotal", ("buy", "sell"), defaults=(AmountWithFee(), AmountWithFee())
 )
 
-
 class Totals:
     def __init__(self):
         self.totals = defaultdict(totaldict)

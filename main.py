@@ -44,7 +44,7 @@ def main(input_file):
     for trade in trades.trades.values():
         trade_totals.add(trade)
 
-    print("Total trades by asset:")
+    print("Total trade:")
     for line in format_trade_totals(trade_totals.totals):
         print(line)
     print()
