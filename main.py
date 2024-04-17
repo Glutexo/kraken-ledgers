@@ -1,33 +1,21 @@
-from csv import DictReader
-
-from entry import Entry
 from entry import EntryType
-from entry import EntryTypeError
 from format import format_totals
 from format import format_trade_totals
+from ledgers import read
 from total import Totals
 from total import Trades
 from total import TradeTotals
-
-
-def _read_csv(file):
-    for entry in DictReader(file):
-        yield entry
 
 
 def main(input_file):
     unprocessed = []
     totals = Totals()
     trades = Trades()
-    for raw_entry in _read_csv(input_file):
-        try:
-            entry = Entry(raw_entry)
-        except EntryTypeError:
-            unprocessed.append(raw_entry)
-        else:
-            totals.add(entry)
-            if entry.type in [EntryType.buy, EntryType.sell]:
-                trades.add(entry)
+
+    for entry in read(input_file):
+        totals.add(entry)
+        if entry.type in [EntryType.buy, EntryType.sell]:
+            trades.add(entry)
     input_file.close()
 
     if unprocessed:

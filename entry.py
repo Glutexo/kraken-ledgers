@@ -4,31 +4,20 @@ from amount import AmountWithFee
 from amount import zero
 
 
-class EntryTypeError(KeyError):
-    pass
-
-
-class EntryAmountError(ValueError):
-    pass
-
-
 class Entry:
     def __init__(self, entry):
         self.refid = entry["refid"]
         self.asset = entry["asset"]
 
         type = entry["type"]
-        try:
-            entry_type = entry_types[type]
-        except KeyError:
-            raise EntryTypeError()
+        entry_type = entry_types[type]
 
         amount_with_fee = AmountWithFee(entry["amount"], entry["fee"])
         self.type = entry_type(amount_with_fee)
 
         valid = entry_validations[self.type](amount_with_fee)
         if not valid:
-            raise EntryAmountError()
+            raise ValueError()
 
         self.amount = abs(amount_with_fee)
 
