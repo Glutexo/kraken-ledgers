@@ -23,7 +23,7 @@ def main(input_file):
         try:
             entry = Entry(raw_entry)
         except EntryTypeError:
-            unprocessed.append(entry)
+            unprocessed.append(raw_entry)
         else:
             totals.add(entry)
             if entry.type in [EntryType.buy, EntryType.sell]:
@@ -31,6 +31,7 @@ def main(input_file):
     input_file.close()
 
     if unprocessed:
+        print(unprocessed)
         print(f"WARNING: {len(unprocessed)} unprocessed entries")
         print()
 
