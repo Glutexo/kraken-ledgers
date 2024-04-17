@@ -19,11 +19,7 @@ class EntryAmountError(ValueError):
 
 
 class AmountWithFee(
-    namedtuple(
-        "AmountWithFee",
-        ("amount", "fee"),
-        defaults=(zero, zero)
-    )
+    namedtuple("AmountWithFee", ("amount", "fee"), defaults=(zero, zero))
 ):
     def __add__(self, other):
         amount = self.amount + other.amount
@@ -42,7 +38,9 @@ def totaldict(**kwargs):
 
 EntryType = Enum("EntryType", ["deposit", "withdrawal", "buy", "sell"])
 Trade = namedtuple("Trade", ("buy", "sell"), defaults=(None, None))
-TradeTotal = namedtuple("TradeTotal", ("buy", "sell"), defaults=(AmountWithFee(), AmountWithFee()))
+TradeTotal = namedtuple(
+    "TradeTotal", ("buy", "sell"), defaults=(AmountWithFee(), AmountWithFee())
+)
 
 
 class Totals:
@@ -105,10 +103,7 @@ entry_validations = {
 def _format_totals(total):
     lines = []
     for asset, amount_with_fee in total.items():
-        lines += [
-            f"{asset}: {amount_with_fee.amount}, "
-            f"fees: {amount_with_fee.fee}"
-        ]
+        lines += [f"{asset}: {amount_with_fee.amount}, " f"fees: {amount_with_fee.fee}"]
     return lines
 
 
@@ -152,7 +147,9 @@ def main(input_file):
 
     print("Total trades by asset:")
     for key, value in trade_totals.items():
-        print(f"{key[0]:4} for {key[1]:4}: {value.buy.amount}, fees {value.buy.fee} for {value.sell.amount}, fees {value.sell.fee}")
+        print(
+            f"{key[0]:4} for {key[1]:4}: {value.buy.amount}, fees {value.buy.fee} for {value.sell.amount}, fees {value.sell.fee}"
+        )
     print()
 
 
