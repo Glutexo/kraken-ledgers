@@ -1,7 +1,6 @@
 from csv import DictReader
 from collections import defaultdict
 
-from cli import main as cli
 from entry import Entry
 from entry import EntryType
 from entry import EntryTypeError
@@ -65,4 +64,5 @@ def main(input_file):
 
 
 if __name__ == "__main__":
-    cli(main)
+    from cli import main as cli_main
+    cli_main(main)
