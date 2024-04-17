@@ -2,7 +2,7 @@ __all__ = ["format_total", "format_totals", "format_trade_total", "format_trade_
 
 
 def format_amount_with_fee(amount_with_fee):
-    return f"{amount_with_fee.amount}, fees: {amount_with_fee.fee}"
+    return f"{amount_with_fee.amount}, fee: {amount_with_fee.fee}"
 
 
 def format_total_item(head, tail):
