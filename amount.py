@@ -9,9 +9,13 @@ class AmountWithFee(
     namedtuple("AmountWithFee", ("amount", "fee"), defaults=(zero, zero))
 ):
     def __add__(self, other):
-        amount = self.amount + other.amount
-        fee = self.fee + other.fee
-        return AmountWithFee(amount, fee)
+        raw_amount = self.amount + other.amount
+        decimal_amount = Decimal(raw_amount)
+
+        raw_fee = self.fee + other.fee
+        decimal_fee = Decimal(raw_fee)
+
+        return AmountWithFee(decimal_amount, decimal_fee)
 
     def __abs__(self):
         amount = abs(self.amount)

@@ -2,11 +2,11 @@ from csv import DictReader
 from collections import defaultdict
 from collections import namedtuple
 
+from amount import AmountWithFee
 from cli import main as cli
 from entry import Entry
 from entry import EntryType
 from entry import EntryTypeError
-from numbers import AmountWithFee
 
 
 def totaldict(**kwargs):
