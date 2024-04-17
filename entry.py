@@ -33,7 +33,7 @@ class Entry:
         self.amount = abs(amount_with_fee)
 
 
-EntryType = Enum("EntryType", ["deposit", "withdrawal", "buy", "sell"])
+EntryType = Enum("EntryType", ["deposit", "withdrawal", "buy", "sell", "transfer"])
 
 entry_types = {
     "deposit": lambda amount: EntryType.deposit,
@@ -41,6 +41,7 @@ entry_types = {
     "trade": lambda amount: EntryType.buy if amount.amount > zero else EntryType.sell,
     "spend": lambda amount: EntryType.sell,
     "receive": lambda amount: EntryType.buy,
+    "transfer": lambda amount: EntryType.transfer,
 }
 
 entry_validations = {
@@ -48,4 +49,5 @@ entry_validations = {
     EntryType.withdrawal: lambda amount: amount.amount < zero,
     EntryType.buy: lambda amount: amount.amount > zero,
     EntryType.sell: lambda amount: amount.amount < zero,
+    EntryType.transfer: lambda amount: amount.amount > zero,
 }
