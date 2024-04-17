@@ -18,8 +18,7 @@ def format_total(total):
 
 def format_totals(totals):
     for total in totals.items():
-        formatted = format_total(total)
-        yield formatted
+        yield format_total(total)
 
 
 def format_trade_pair(buy, sell):
@@ -37,5 +36,4 @@ def format_trade_total(trade_total):
 
 def format_trade_totals(trade_totals):
     for trade_total in trade_totals.items():
-        formatted = format_trade_total(trade_total)
-        yield formatted
+        yield format_trade_total(trade_total)
