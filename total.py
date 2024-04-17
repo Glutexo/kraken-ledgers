@@ -4,6 +4,9 @@ from collections import namedtuple
 from amount import AmountWithFee
 
 
+__all__ = ["totaldict", "Trade", "TradeTotal", "Totals", "Trades", "TradeTotals"]
+
+
 def totaldict(**kwargs):
     return defaultdict(AmountWithFee, **kwargs)
 
@@ -30,3 +33,15 @@ class Trades:
         existing = self.trades[entry.refid]._asdict()
         type = entry.type.name
         self.trades[entry.refid] = Trade(**{**existing, type: entry})
+
+
+class TradeTotals:
+    def __init__(self):
+        self.totals = defaultdict(TradeTotal)
+
+    def add(self, trade):
+        pair = (trade.buy.asset, trade.sell.asset)
+
+        buy = self.totals[pair].buy + trade.buy.amount
+        sell = self.totals[pair].sell + trade.sell.amount
+        self.totals[pair] = TradeTotal(buy, sell)

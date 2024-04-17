@@ -1,19 +1,13 @@
 from csv import DictReader
-from collections import defaultdict
 
 from entry import Entry
 from entry import EntryType
 from entry import EntryTypeError
+from format import format_totals
+from format import format_trade_totals
 from total import Totals
 from total import Trades
-from total import TradeTotal
-
-
-def _format_totals(total):
-    lines = []
-    for asset, amount_with_fee in total.items():
-        lines += [f"{asset}: {amount_with_fee.amount}, " f"fees: {amount_with_fee.fee}"]
-    return lines
+from total import TradeTotals
 
 
 def _read_csv(file):
@@ -42,24 +36,17 @@ def main(input_file):
 
     for description, totals in totals.totals.items():
         print(f"Total {description.name}:")
-        for line in _format_totals(totals):
+        for line in format_totals(totals):
             print(line)
         print()
 
-    trade_totals = defaultdict(TradeTotal)
-
+    trade_totals = TradeTotals()
     for trade in trades.trades.values():
-        pair = (trade.buy.asset, trade.sell.asset)
-
-        buy = trade_totals[pair].buy + trade.buy.amount
-        sell = trade_totals[pair].sell + trade.sell.amount
-        trade_totals[pair] = TradeTotal(buy, sell)
+        trade_totals.add(trade)
 
     print("Total trades by asset:")
-    for key, value in trade_totals.items():
-        print(
-            f"{key[0]:4} for {key[1]:4}: {value.buy.amount}, fees {value.buy.fee} for {value.sell.amount}, fees {value.sell.fee}"
-        )
+    for line in format_trade_totals(trade_totals.totals):
+        print(line)
     print()
 
 
