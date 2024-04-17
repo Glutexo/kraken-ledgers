@@ -1,13 +1,14 @@
-from collections import namedtuple
 from decimal import Decimal
 
 
 zero = Decimal("0")
 
 
-class AmountWithFee(
-    namedtuple("AmountWithFee", ("amount", "fee"), defaults=(zero, zero))
-):
+class AmountWithFee:
+    def __init__(self, amount=zero, fee=zero):
+        self.amount = Decimal(amount)
+        self.fee = Decimal(fee)
+
     def __add__(self, other):
         raw_amount = self.amount + other.amount
         decimal_amount = Decimal(raw_amount)
