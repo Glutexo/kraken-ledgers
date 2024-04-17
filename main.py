@@ -1,26 +1,18 @@
 from csv import DictReader
 from collections import defaultdict
 from collections import namedtuple
-from decimal import Decimal
-from enum import Enum
 
 from cli import main as cli
+from entry import Entry
+from entry import EntryType
+from entry import EntryTypeError
 from numbers import AmountWithFee
-
-
-class EntryTypeError(KeyError):
-    pass
-
-
-class EntryAmountError(ValueError):
-    pass
 
 
 def totaldict(**kwargs):
     return defaultdict(AmountWithFee, **kwargs)
 
 
-EntryType = Enum("EntryType", ["deposit", "withdrawal", "buy", "sell"])
 Trade = namedtuple("Trade", ("buy", "sell"), defaults=(None, None))
 TradeTotal = namedtuple(
     "TradeTotal", ("buy", "sell"), defaults=(AmountWithFee(), AmountWithFee())
@@ -43,45 +35,6 @@ class Trades:
         existing = self.trades[entry.refid]._asdict()
         type = entry.type.name
         self.trades[entry.refid] = Trade(**{**existing, type: entry})
-
-
-class Entry:
-    def __init__(self, entry):
-        self.refid = entry["refid"]
-        self.asset = entry["asset"]
-
-        type = entry["type"]
-        try:
-            entry_type = entry_types[type]
-        except KeyError:
-            raise EntryTypeError()
-
-        amount = Decimal(entry["amount"])
-        fee = Decimal(entry["fee"])
-        amount_with_fee = AmountWithFee(amount, fee)
-        self.type = entry_type(amount_with_fee)
-
-        valid = entry_validations[self.type](amount_with_fee)
-        if not valid:
-            raise EntryAmountError()
-
-        self.amount = abs(amount_with_fee)
-
-
-entry_types = {
-    "deposit": lambda amount: EntryType.deposit,
-    "withdrawal": lambda amount: EntryType.withdrawal,
-    "trade": lambda amount: EntryType.buy if amount.amount > zero else EntryType.sell,
-    "spend": lambda amount: EntryType.sell,
-    "receive": lambda amount: EntryType.buy,
-}
-
-entry_validations = {
-    EntryType.deposit: lambda amount: amount.amount > zero,
-    EntryType.withdrawal: lambda amount: amount.amount < zero,
-    EntryType.buy: lambda amount: amount.amount > zero,
-    EntryType.sell: lambda amount: amount.amount < zero,
-}
 
 
 def _format_totals(total):
