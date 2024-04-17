@@ -31,7 +31,6 @@ def main(input_file):
     input_file.close()
 
     if unprocessed:
-        print(unprocessed)
         print(f"WARNING: {len(unprocessed)} unprocessed entries")
         print()
 
