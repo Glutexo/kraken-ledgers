@@ -3,7 +3,8 @@ from collections import defaultdict
 from collections import namedtuple
 from decimal import Decimal
 from enum import Enum
-from sys import argv
+
+from cli import main as cli
 
 
 zero = Decimal("0")
@@ -116,20 +117,19 @@ def _read_csv(file):
         yield entry
 
 
-def main(input_path):
-    with open(input_path, "r") as input_file:
-        unprocessed = []
-        totals = Totals()
-        trades = Trades()
-        for raw_entry in _read_csv(input_file):
-            try:
-                entry = Entry(raw_entry)
-            except EntryTypeError:
-                unprocessed.append(entry)
-            else:
-                totals.add(entry)
-                if entry.type in [EntryType.buy, EntryType.sell]:
-                    trades.add(entry)
+def main(input_file):
+    unprocessed = []
+    totals = Totals()
+    trades = Trades()
+    for raw_entry in _read_csv(input_file):
+        try:
+            entry = Entry(raw_entry)
+        except EntryTypeError:
+            unprocessed.append(entry)
+        else:
+            totals.add(entry)
+            if entry.type in [EntryType.buy, EntryType.sell]:
+                trades.add(entry)
 
     if unprocessed:
         print(f"WARNING: {len(unprocessed)} unprocessed entries")
@@ -157,4 +157,4 @@ def main(input_path):
 
 
 if __name__ == "__main__":
-    main(argv[1])
+    cli(main)
