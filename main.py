@@ -5,9 +5,7 @@ from decimal import Decimal
 from enum import Enum
 
 from cli import main as cli
-
-
-zero = Decimal("0")
+from numbers import AmountWithFee
 
 
 class EntryTypeError(KeyError):
@@ -16,20 +14,6 @@ class EntryTypeError(KeyError):
 
 class EntryAmountError(ValueError):
     pass
-
-
-class AmountWithFee(
-    namedtuple("AmountWithFee", ("amount", "fee"), defaults=(zero, zero))
-):
-    def __add__(self, other):
-        amount = self.amount + other.amount
-        fee = self.fee + other.fee
-        return AmountWithFee(amount, fee)
-
-    def __abs__(self):
-        amount = abs(self.amount)
-        fee = abs(self.fee)
-        return AmountWithFee(amount, fee)
 
 
 def totaldict(**kwargs):
@@ -125,6 +109,7 @@ def main(input_file):
             totals.add(entry)
             if entry.type in [EntryType.buy, EntryType.sell]:
                 trades.add(entry)
+    input_file.close()
 
     if unprocessed:
         print(f"WARNING: {len(unprocessed)} unprocessed entries")
