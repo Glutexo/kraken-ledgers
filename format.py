@@ -21,16 +21,20 @@ def format_totals(totals):
         yield format_total(total)
 
 
-def format_trade_pair(buy, sell):
+def format_trade_asset(asset):
+    return f"{asset:4}"
+
+
+def format_trade(trade, format_trade_item):
+    buy = format_trade_item(trade.buy)
+    sell = format_trade_item(trade.sell)
     return f"{buy} for {sell}"
 
 
 def format_trade_total(trade_total):
     key, value = trade_total
-    head = format_trade_pair(f"{key[0]:4}", f"{key[1]:4}")
-    tail = format_trade_pair(
-        format_amount_with_fee(value.buy), format_amount_with_fee(value.sell)
-    )
+    head = format_trade(key, format_trade_asset)
+    tail = format_trade(value, format_amount_with_fee)
     return format_total_item(head, tail)
 
 

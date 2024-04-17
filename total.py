@@ -40,7 +40,7 @@ class TradeTotals:
         self.totals = defaultdict(TradeTotal)
 
     def add(self, trade):
-        pair = (trade.buy.asset, trade.sell.asset)
+        pair = Trade(trade.buy.asset, trade.sell.asset)
 
         buy = self.totals[pair].buy + trade.buy.amount
         sell = self.totals[pair].sell + trade.sell.amount
