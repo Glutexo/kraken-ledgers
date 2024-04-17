@@ -8,7 +8,6 @@ from total import TradeTotals
 
 
 def main(input_file):
-    unprocessed = []
     totals = Totals()
     trades = Trades()
 
@@ -17,10 +16,6 @@ def main(input_file):
         if entry.type in [EntryType.buy, EntryType.sell]:
             trades.add(entry)
     input_file.close()
-
-    if unprocessed:
-        print(f"WARNING: {len(unprocessed)} unprocessed entries")
-        print()
 
     for description, totals in totals.totals.items():
         print(f"Total {description.name}:")
