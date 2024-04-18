@@ -39,7 +39,7 @@ def main(input_file):
             writer.write(trade_total)
 
 
-
 if __name__ == "__main__":
     from cli import main as cli_main
+
     cli_main(main)
