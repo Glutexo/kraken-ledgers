@@ -2,6 +2,7 @@ from entry import EntryType
 from format import format_totals
 from format import format_trade_totals
 from ledgers import read
+from output import TradeTotalsWriter
 from total import Totals
 from total import Trades
 from total import TradeTotals
@@ -31,6 +32,12 @@ def main(input_file):
     for line in format_trade_totals(trade_totals.totals):
         print(line)
     print()
+
+    with open("trades.csv", "w") as trades_file:
+        writer = TradeTotalsWriter(trades_file)
+        for trade_total in trade_totals.totals.items():
+            writer.write(trade_total)
+
 
 
 if __name__ == "__main__":
