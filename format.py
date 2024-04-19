@@ -1,4 +1,4 @@
-__all__ = ["format_total", "format_totals", "format_trade_total", "format_trade_totals"]
+__all__ = ["format_totals", "format_trade_totals"]
 
 
 def format_amount_with_fee(amount_with_fee):

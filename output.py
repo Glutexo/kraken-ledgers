@@ -4,6 +4,9 @@ from itertools import product
 
 from total import Trade
 
+__all__ = ["TradeTotalsWriter"]
+
+
 FIELD_FUNCTIONS = {
     "asset": lambda key, value: key,
     "amount": lambda key, value: value.amount,

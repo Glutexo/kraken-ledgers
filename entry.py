@@ -3,6 +3,8 @@ from enum import Enum
 from amount import AmountWithFee
 from amount import zero
 
+__all__ = ["Entry"]
+
 
 class Entry:
     def __init__(self, entry):

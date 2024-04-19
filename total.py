@@ -4,7 +4,7 @@ from collections import namedtuple
 from amount import AmountWithFee
 
 
-__all__ = ["totaldict", "Trade", "TradeTotal", "Totals", "Trades", "TradeTotals"]
+__all__ = ["Trade", "Totals", "Trades", "TradeTotals"]
 
 
 def totaldict(**kwargs):
