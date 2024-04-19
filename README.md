@@ -87,6 +87,7 @@ I only used this one-shot for a single ledgers file with all crypto → fiat wit
 - No filtering by asset.
 - No CSV output for plain totals, only for trades by asset.
 - Possibly unsupported transaction types.
+- No tests!
 
 **⚠️ Use at your own risk. I don’t guarantee correctness of the output and take no responsibility for any consequences resulting from its usage.**
 
