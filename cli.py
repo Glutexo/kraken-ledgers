@@ -5,7 +5,10 @@ __all__ = ["main"]
 
 
 def main(callback):
-    parser = ArgumentParser(description="Parse Kraken ledgers file.")
+    parser = ArgumentParser(
+        description="Parse Kraken ledgers file. See "
+        "https://tinyurl.com/kraken-ledgers for more details."
+    )
     parser.add_argument("--ledgers", type=FileType("r"), default="ledgers.csv")
     args = parser.parse_args()
 
