@@ -8,15 +8,15 @@ from total import Trades
 from total import TradeTotals
 
 
-def main(input_file):
+def main(ledgers_file, trades_file):
     totals = Totals()
     trades = Trades()
 
-    for entry in read(input_file):
+    for entry in read(ledgers_file):
         totals.add(entry)
         if entry.type in [EntryType.buy, EntryType.sell]:
             trades.add(entry)
-    input_file.close()
+    ledgers_file.close()
 
     for description, totals in totals.totals.items():
         print(f"Total {description.name}:")
@@ -33,10 +33,9 @@ def main(input_file):
         print(line)
     print()
 
-    with open("trades.csv", "w") as trades_file:
-        writer = TradeTotalsWriter(trades_file)
-        for trade_total in trade_totals.totals.items():
-            writer.write(trade_total)
+    writer = TradeTotalsWriter(trades_file)
+    for trade_total in trade_totals.totals.items():
+        writer.write(trade_total)
 
 
 if __name__ == "__main__":

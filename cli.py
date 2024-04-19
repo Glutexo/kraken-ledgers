@@ -10,9 +10,10 @@ def main(callback):
         "https://tinyurl.com/kraken-ledgers for more details."
     )
     parser.add_argument("--ledgers", type=FileType("r"), default="ledgers.csv")
+    parser.add_argument("--trades", type=FileType("w"), default="trades.csv")
     args = parser.parse_args()
 
-    callback(args.ledgers)
+    callback(args.ledgers, args.trades)
     args.ledgers.close()
 
 
